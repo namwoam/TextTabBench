@@ -8,6 +8,14 @@ This work is part of our workshop paper:
 
 ---
 
+### IMPORTANT INFO
+One of the datasets (California Houses) requires acceptance of a Kaggle competition to download correctly, we will try to remove this requirement to ease the downloading process soon. Until then, please accept the competition terms to use the dataset or remove it from the download config at `dataset_configs.py`. The competition's link is [HERE](https://www.kaggle.com/competitions/california-house-prices/data?select=train.csv).
+
+Since our work on the benchmark, Kaggle updated its download functionality for larger `.csv` files. For the benchmark automatic donwlaod and file renaming to work correctly, please downgrade you kaggle instalation to `1.6.14` (has been tested to fix the issue.)
+```
+pip install kaggle==1.6.14
+```
+
 ## 📁 Repository Structure
 
 ```text
