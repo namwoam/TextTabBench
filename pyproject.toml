@@ -1,0 +1,28 @@
+[project]
+name = "text-tab-bench"
+version = "0.1.0"
+description = ""
+authors = [
+    {name = "andre.liang",email = "namwoam@gmail.com"}
+]
+readme = "README.md"
+requires-python = ">=3.13,<3.14"
+dependencies = [
+    "autogluon (>=1.5.0,<2.0.0)",
+    "shap (>=0.51.0,<0.52.0)",
+    "gensim (>=4.4.0,<5.0.0)",
+    "fasttext (>=0.9.3,<0.10.0)",
+    "openml (>=0.15.1,<0.16.0)",
+    "numpy (>=2.0.0,<3.0.0)",
+    "pandas (>=2.3.0,<3.0.0)",
+    "kaggle (>=2.0.0,<3.0.0)",
+    "seaborn (>=0.13.2,<0.14.0)",
+    "xgboost (>=3.1,<4.0)",
+    "ipykernel (>=7.2.0,<8.0.0)"
+    
+]
+
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
