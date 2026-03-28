@@ -5,7 +5,7 @@ from utils.log_msgs import *
 import subprocess
 import urllib.parse
 
-import chardet
+from charset_normalizer import detect
 import csv
 import arff
 import pandas as pd
@@ -133,9 +133,12 @@ def detect_encoding(file_path: str):
     encoding: str, detected encoding of the file
     """
     with open(file_path, "rb") as file:
-        result = chardet.detect(file.read())
-        return result['encoding'] 
-
+        raw_data = file.read()
+        result = detect(raw_data)
+        encoding = result['encoding']
+        if encoding is None:
+            warn_msg(f"Could not detect encoding for {file_path}. Using 'utf-8' as default.")
+            return 'utf-8'
 #####
 ## handle arff files
 #####
