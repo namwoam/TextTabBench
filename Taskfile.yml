@@ -1,0 +1,5 @@
+version: "3"
+tasks:
+  download:
+    cmds:
+    - poetry run python src/download_datasets/download_datasets.py --selection default
