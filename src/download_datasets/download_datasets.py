@@ -4,6 +4,10 @@ import os, sys
 import argparse
 from typing import Union
 import nbformat.v4 as v4
+from dotenv import load_dotenv
+
+
+
 
 current_dir = os.path.dirname(os.path.realpath(__file__))
 project_root = os.path.abspath(os.path.join(current_dir, '..', '..'))

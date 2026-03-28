@@ -1,21 +1,29 @@
 import os
 import openml
 import requests
-
+from dotenv import load_dotenv
 import sys
 import os
+
 # Add project root to sys.path (two levels up from this file)
 current_dir = os.path.dirname(os.path.realpath(__file__))
-project_root = os.path.abspath(os.path.join(current_dir, '..', '..'))
-dataloader_root = os.path.abspath(os.path.join(current_dir, '..'))
+project_root = os.path.abspath(os.path.join(current_dir, "..", ".."))
+dataloader_root = os.path.abspath(os.path.join(current_dir, ".."))
 
 if project_root not in sys.path:
     sys.path.insert(0, project_root)
 if dataloader_root not in sys.path:
     sys.path.insert(0, dataloader_root)
 
+# Load variables from .env file into the current process's environment
+load_dotenv()
+
+# Make a copy of the current environment
+# This is crucial so that fundamental variables (like PATH) are inherited
+current_env = os.environ.copy()
+
 current_dir = os.path.dirname(os.path.realpath(__file__))
-RAW_DIR = os.path.join(current_dir, '..', '..', 'datasets_files','raw')
+RAW_DIR = os.path.join(current_dir, "..", "..", "datasets_files", "raw")
 
 from dataloader_functions.utils.log_msgs import *
 from dataloader_functions.utils.data_2_df import run_command, _unzip_if_zipped
@@ -33,33 +41,34 @@ def _check_download_parameters(dataset_config):
     - files: files to download
     """
 
-    dataset_name = dataset_config.get('dataset_name', 'unknown')
+    dataset_name = dataset_config.get("dataset_name", "unknown")
 
-    if 'source' not in dataset_config.keys():
+    if "source" not in dataset_config.keys():
         error_msg(f"Dataset {dataset_name} does not have a source.")
         return False
-    if 'remote_path' not in dataset_config.keys():
+    if "remote_path" not in dataset_config.keys():
         error_msg(f"Dataset {dataset_name} does not have a remote path.")
         return False
-    if 'task' not in dataset_config.keys():
+    if "task" not in dataset_config.keys():
         error_msg(f"Dataset {dataset_name} does not have a task.")
         return False
-    if 'target' not in dataset_config.keys():
+    if "target" not in dataset_config.keys():
         error_msg(f"Dataset {dataset_name} does not have a target variable.")
         return False
-    if 'files' not in dataset_config.keys():
+    if "files" not in dataset_config.keys():
         error_msg(f"Dataset {dataset_name} does not have files to download.")
         return False
 
-    if dataset_config["task"] not in ['reg', 'clf']:
+    if dataset_config["task"] not in ["reg", "clf"]:
         error_msg(f"Dataset {dataset_name} does not have a valid task.")
         return False
 
-    if dataset_config["source"] not in ['huggingface', 'kaggle', 'openml', 'url']:
+    if dataset_config["source"] not in ["huggingface", "kaggle", "openml", "url"]:
         error_msg(f"Dataset {dataset_name} does not have a valid source.")
         return False
 
     return True
+
 
 def _create_local_path_raw(local_path, task, dataset_name=None):
     """
@@ -73,42 +82,57 @@ def _create_local_path_raw(local_path, task, dataset_name=None):
         if task is None:
             error_msg("Task is not provided.")
             return None
-        elif task == 'reg':
-            local_path = os.path.join(local_path, 'regression')
-        elif task == 'clf':
-            local_path = os.path.join(local_path, 'classification')
+        elif task == "reg":
+            local_path = os.path.join(local_path, "regression")
+        elif task == "clf":
+            local_path = os.path.join(local_path, "classification")
         else:
             error_msg(f"Task '{task}' is not supported.")
             return None
-        
+
         if dataset_name is not None:
             # if the dataset name is provided, create a folder for it
             local_path = os.path.join(local_path, dataset_name)
     return local_path
+
 
 def _check_if_downloaded(download_path):
     """
     Check if the dataset is already downloaded.
     If the path exists and the folder is not empty, return True.
     """
-    if os.path.exists(download_path) and os.path.isdir(download_path) and len(os.listdir(download_path)) > 0:
+    if (
+        os.path.exists(download_path)
+        and os.path.isdir(download_path)
+        and len(os.listdir(download_path)) > 0
+    ):
         info_msg(f"Dataset already downloaded in {color_text(download_path)}.")
         return True
     else:
-        info_msg(f"Dataset not downloaded yet. Downloading to {color_text(download_path)}.")
+        info_msg(
+            f"Dataset not downloaded yet. Downloading to {color_text(download_path)}."
+        )
         return False
 
+
 def _rename_files(path, dataset_config):
-    if 'rename_files' in dataset_config.keys():
+    if "rename_files" in dataset_config.keys():
         # check there are the same amount of files
-        if not len(dataset_config['rename_files']) > 0 or len(dataset_config['rename_files'][0]) == 0:
+        if (
+            not len(dataset_config["rename_files"]) > 0
+            or len(dataset_config["rename_files"][0]) == 0
+        ):
             warn_msg(f"No files to rename. Skipping renaming.")
             return False
 
-        if len(dataset_config['files']) != len(dataset_config['rename_files']):
-            warn_msg(f"Number of files to rename does not match the number of files to download. Skipping renaming.")
+        if len(dataset_config["files"]) != len(dataset_config["rename_files"]):
+            warn_msg(
+                f"Number of files to rename does not match the number of files to download. Skipping renaming."
+            )
             return False
-        for file, new_file in zip(dataset_config['files'], dataset_config['rename_files']):
+        for file, new_file in zip(
+            dataset_config["files"], dataset_config["rename_files"]
+        ):
             file_path = os.path.join(path, file)
             new_file_path = os.path.join(path, new_file)
             if os.path.exists(file_path):
@@ -118,6 +142,7 @@ def _rename_files(path, dataset_config):
                 error_msg(f"File {color_text(file)} does not exist.")
                 return False
     return True
+
 
 def _clean_folder(path):
     """
@@ -132,14 +157,17 @@ def _clean_folder(path):
     else:
         info_msg(f"Folder {color_text(path)} does not exist - can't be cleaned.")
 
+
 def _remove_unlisted(dataset_config, download_path):
     """
     Remove files in the download_path that are not listed in dataset_config['files'].
     """
-    listed_files = set(dataset_config['files'])
+    listed_files = set(dataset_config["files"])
 
     if not os.path.exists(download_path) or not os.path.isdir(download_path):
-        error_msg(f"Download path {color_text(download_path)} does not exist or is not a directory.")
+        error_msg(
+            f"Download path {color_text(download_path)} does not exist or is not a directory."
+        )
         return False
 
     removed_any = False
@@ -154,32 +182,39 @@ def _remove_unlisted(dataset_config, download_path):
         info_msg(f"No unlisted files found in {color_text(download_path)}.")
 
     return True
-    
+
+
 def _tsv_to_csv(path, dataset_config):
     """
     Convert all TSV files in the given path to CSV files.
     """
 
-    rename_files = dataset_config.get('files', None)
+    rename_files = dataset_config.get("files", None)
     if rename_files is None or len(rename_files) == 0:
         raise ValueError("No files listed for processing.")
 
     for file in os.listdir(path):
-        if file.endswith('.tsv'):
+        if file.endswith(".tsv"):
             tsv_file_path = os.path.join(path, file)
-            csv_file_path = os.path.join(path, file.replace('.tsv', '.csv'))
-            with open(tsv_file_path, 'r') as tsv_file:
-                with open(csv_file_path, 'w') as csv_file:
+            csv_file_path = os.path.join(path, file.replace(".tsv", ".csv"))
+            with open(tsv_file_path, "r") as tsv_file:
+                with open(csv_file_path, "w") as csv_file:
                     for line in tsv_file:
-                        csv_file.write(line.replace('\t', ','))
+                        csv_file.write(line.replace("\t", ","))
             os.remove(tsv_file_path)
             info_msg(f"Converted {color_text(file)} to CSV.")
 
     # replace the file name 'rename_files' with the new file name
-    rename_files = [file.replace('.tsv', '.csv') for file in rename_files]
+    rename_files = [file.replace(".tsv", ".csv") for file in rename_files]
     return rename_files
 
-def download_raw_data(dataset_config:dict, download_path:str, force_download:bool=False, remove_unlisted:bool=False):
+
+def download_raw_data(
+    dataset_config: dict,
+    download_path: str,
+    force_download: bool = False,
+    remove_unlisted: bool = False,
+):
     """
     Given the dataset name, attempt to download the data from the web.
 
@@ -189,13 +224,14 @@ def download_raw_data(dataset_config:dict, download_path:str, force_download:boo
     - OpenML
     - URL (using requests.get)
     """
+
     def hf_download(dataset_info, download_path):
         """
         Downloads a dataset from HuggingFace and saves it in the provided path.
         Given multuiple files, all will be downloaded.
         """
-        hf_path = dataset_info['remote_path']
-        files = dataset_info['files']
+        hf_path = dataset_info["remote_path"]
+        files = dataset_info["files"]
         base_url = "https://huggingface.co/datasets/" + hf_path + "/resolve/main/"
 
         if isinstance(files, str):
@@ -210,12 +246,15 @@ def download_raw_data(dataset_config:dict, download_path:str, force_download:boo
                 with open(file_path, "wb") as f:
                     for chunk in response.iter_content(chunk_size=8192):
                         f.write(chunk)
-                info_msg(f"Downloaded: {color_text(file_name)}"+
-                         f" from {color_text('HuggingFace')} to {download_path}.", color='green')
+                info_msg(
+                    f"Downloaded: {color_text(file_name)}"
+                    + f" from {color_text('HuggingFace')} to {download_path}.",
+                    color="green",
+                )
             else:
                 error_msg(f"Could not download the file '{color_text(file_name)}'.")
                 return False
-        
+
         return True
 
     def kaggle_download(dataset_info, download_path):
@@ -224,19 +263,23 @@ def download_raw_data(dataset_config:dict, download_path:str, force_download:boo
         Given multuiple files, all will be downloaded.
         """
 
-        if 'competition' in dataset_info.keys():
+        if "competition" in dataset_info.keys():
             print(f"competition: {dataset_info['competition']}")
 
-        if 'competition' in dataset_info.keys() and dataset_info['competition']:
+        if "competition" in dataset_info.keys() and dataset_info["competition"]:
             # we need to download the whole competition
-            command = f"kaggle competitions download -c {dataset_info['remote_path']} -p {download_path}"
-            run_command(command)
-            info_msg(f"Downloaded: {color_text(dataset_info['remote_path'])}"+
-                        f" from {color_text('Kaggle')} to {download_path}.", color='green')
+            command = f"poetry run kaggle competitions download -c {dataset_info['remote_path']} -p {download_path}"
+            # to inject kaggle API token, we need to pass the current environment to the subprocess
+            run_command(command, env=current_env)
+            info_msg(
+                f"Downloaded: {color_text(dataset_info['remote_path'])}"
+                + f" from {color_text('Kaggle')} to {download_path}.",
+                color="green",
+            )
             return True
 
-        kaggle_path = dataset_info['remote_path']
-        files = dataset_info['files']    
+        kaggle_path = dataset_info["remote_path"]
+        files = dataset_info["files"]
         if isinstance(files, str):
             files = [files]
 
@@ -245,8 +288,11 @@ def download_raw_data(dataset_config:dict, download_path:str, force_download:boo
             command = f"kaggle datasets download -d {kaggle_path} --file '{file_name}' -p {download_path}"
             try:
                 run_command(command)
-                info_msg(f"Downloaded: {color_text(file_name)}"+
-                         f" from {color_text('Kaggle')} to {download_path}.", color='green')
+                info_msg(
+                    f"Downloaded: {color_text(file_name)}"
+                    + f" from {color_text('Kaggle')} to {download_path}.",
+                    color="green",
+                )
             except:
                 error_msg(f"Could not download the file '{color_text(file_name)}'.")
                 return False
@@ -257,29 +303,36 @@ def download_raw_data(dataset_config:dict, download_path:str, force_download:boo
         Downloads a dataset (single file) from OpenML and saves it as a CSV file.
         Saves the dataset as a CSV file in the given download path.
         """
-        dataset_name = dataset_info['dataset_name']
-        openml_id = dataset_info['remote_path']
-        
-        dataset = openml.datasets.get_dataset(openml_id,)
+        dataset_name = dataset_info["dataset_name"]
+        openml_id = dataset_info["remote_path"]
+
+        dataset = openml.datasets.get_dataset(
+            openml_id,
+        )
         if dataset is None:
-            error_msg(f"Could not download the dataset '{color_text(dataset_name)}'"+
-                      f" from {color_text('OpenML')} to {download_path}.")
+            error_msg(
+                f"Could not download the dataset '{color_text(dataset_name)}'"
+                + f" from {color_text('OpenML')} to {download_path}."
+            )
             return False
         df, *_ = dataset.get_data()
 
         file_path = os.path.join(download_path, dataset_name + ".csv")
         df.to_csv(file_path, index=False)
-        info_msg(f"Downloaded: {color_text(dataset_name)}"+
-                 f" from {color_text('OpenML')}.", color='green')
+        info_msg(
+            f"Downloaded: {color_text(dataset_name)}"
+            + f" from {color_text('OpenML')}.",
+            color="green",
+        )
         return True
-    
+
     def url_download(dataset_info, download_path):
         """
         Downloads a !single file! from the given URL.
         Experimental use only, feel free to modify for specific url downloads.
         """
-        
-        url = dataset_info['remote_path']
+
+        url = dataset_info["remote_path"]
         file_name = os.path.basename(url)
         file_path = os.path.join(download_path, file_name)
 
@@ -288,19 +341,24 @@ def download_raw_data(dataset_config:dict, download_path:str, force_download:boo
             with open(file_path, "wb") as f:
                 for chunk in response.iter_content(chunk_size=8192):
                     f.write(chunk)
-            info_msg(f"Downloaded: {color_text(file_name)}"+
-                    f" from {color_text('url')} to {download_path}.", color='green')
+            info_msg(
+                f"Downloaded: {color_text(file_name)}"
+                + f" from {color_text('url')} to {download_path}.",
+                color="green",
+            )
             return True
         else:
-            error_msg(f"Could not download the file '{color_text(file_name)}'"+
-                    f" via {color_text('url-download')}.")
+            error_msg(
+                f"Could not download the file '{color_text(file_name)}'"
+                + f" via {color_text('url-download')}."
+            )
             return False
 
     download_func_dict = {
-    'huggingface': hf_download,
-    'kaggle': kaggle_download,
-    'openml': openml_download,
-    'url': url_download
+        "huggingface": hf_download,
+        "kaggle": kaggle_download,
+        "openml": openml_download,
+        "url": url_download,
     }
 
     # check if the dataset is already downloaded
@@ -311,14 +369,18 @@ def download_raw_data(dataset_config:dict, download_path:str, force_download:boo
 
     # chec if the dataset is supported and has all parameters
     if not _check_download_parameters(dataset_config):
-        error_msg(f"Dataset {dataset_config['dataset_name']} is not supported or its configs are not complete.")
+        error_msg(
+            f"Dataset {dataset_config['dataset_name']} is not supported or its configs are not complete."
+        )
         return False
-    
-    task = dataset_config['task']
-    dataset_source = dataset_config['source']
+
+    task = dataset_config["task"]
+    dataset_source = dataset_config["source"]
 
     # in case the download path is not provided, create a local path
-    download_path = _create_local_path_raw(download_path, task, dataset_config['dataset_name'])
+    download_path = _create_local_path_raw(
+        download_path, task, dataset_config["dataset_name"]
+    )
 
     # download the dataset according to the source
     download_fc = download_func_dict.get(dataset_source)
@@ -334,12 +396,11 @@ def download_raw_data(dataset_config:dict, download_path:str, force_download:boo
     if remove_unlisted:
         _remove_unlisted(dataset_config, download_path)
 
-
-    dataset_config['files'] =_tsv_to_csv(download_path, dataset_config)
+    dataset_config["files"] = _tsv_to_csv(download_path, dataset_config)
 
     if not _rename_files(download_path, dataset_config):
         # error_msg(f"Could not rename the files in {color_text(download_path)}.")
-        ...    
+        ...
 
     return download_path
 
@@ -347,14 +408,14 @@ def download_raw_data(dataset_config:dict, download_path:str, force_download:boo
 if __name__ == "__main__":
     ## testing download functions
     dataset_config = {
-        'dataset_name': 'laptops',
-        'source': 'kaggle',
-        'remote_path': 'dhanushbommavaram/laptop-dataset',
-        'files': ['complete laptop data0.csv'],
-        'rename_files': ['laptops.csv'],
-        'task': 'reg',
-        'target': 'Price',
+        "dataset_name": "laptops",
+        "source": "kaggle",
+        "remote_path": "dhanushbommavaram/laptop-dataset",
+        "files": ["complete laptop data0.csv"],
+        "rename_files": ["laptops.csv"],
+        "task": "reg",
+        "target": "Price",
     }
 
-    download_path = os.path.join(RAW_DIR, 'regression', dataset_config['dataset_name'])
+    download_path = os.path.join(RAW_DIR, "regression", dataset_config["dataset_name"])
     download_raw_data(dataset_config, download_path, force_download=True)

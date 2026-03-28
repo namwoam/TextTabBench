@@ -13,9 +13,9 @@ import pandas as pd
 #####
 ### utils for other for folder management functions:
 #####
-def run_command(command):
+def run_command(command, env=None):
     try:
-        result = subprocess.run(command, shell=True, check=True, capture_output=True, text=True)
+        result = subprocess.run(command, shell=True, check=True, capture_output=True, text=True, env=env)
         return result.stdout
     
     except subprocess.CalledProcessError as e:
