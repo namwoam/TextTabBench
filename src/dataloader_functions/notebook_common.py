@@ -90,6 +90,8 @@ def run_basic_cleaning(
     cleaned_frames: list[pd.DataFrame] = []
     for df_file in dataset_files_df:
         df_size = df_file.shape
+        # Normalize embedded newlines in string-like cells to keep each record single-line.
+        df_file = strip_newlines_in_cells(df_file)
         df_file = _drop_empty_columns(df_file, threshold=missing_ratio_threshold)
         df_file = _drop_single_value_columns(df_file)
         df_file = df_file.drop_duplicates()
@@ -99,6 +101,21 @@ def run_basic_cleaning(
         cleaned_frames.append(df_file)
         print(f"Dataframe shape before/afrer cleaning: {df_size} / {df_file.shape}")
     return cleaned_frames
+
+
+def strip_newlines_in_cells(df: pd.DataFrame) -> pd.DataFrame:
+    """Replace CR/LF sequences inside string-like cells with a single space."""
+
+    def _clean_value(value):
+        if isinstance(value, str):
+            return value.replace("\r\n", " ").replace("\n", " ").replace("\r", " ")
+        return value
+
+    cleaned = df.copy()
+    string_like_cols = cleaned.select_dtypes(include=["object", "string"]).columns
+    for col in string_like_cols:
+        cleaned[col] = cleaned[col].map(_clean_value)
+    return cleaned
 
 
 def drop_selected_columns(dataset_files_df: list[pd.DataFrame], cols_to_drop: list[str]) -> list[pd.DataFrame]:

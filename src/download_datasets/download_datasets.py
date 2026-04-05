@@ -21,7 +21,7 @@ from src.dataloader_functions.utils.log_msgs import info_msg, warn_msg, error_ms
 
 
 def _save_processed_frames(dataset_config: dict, download_path: str, dataset_files_cleaned: list) -> None:
-    """Persist generically cleaned outputs as Pickle files next to raw files."""
+    """Persist cleaned outputs as refreshed CSV and Pickle files."""
     rename_files = dataset_config.get("rename_files") or dataset_config.get("files") or []
 
     if len(rename_files) != len(dataset_files_cleaned):
@@ -32,6 +32,10 @@ def _save_processed_frames(dataset_config: dict, download_path: str, dataset_fil
         return
 
     for file_name, df_file in zip(rename_files, dataset_files_cleaned):
+        csv_output_path = os.path.join(download_path, file_name)
+        df_file.to_csv(csv_output_path, index=False)
+        info_msg(f"Saved cleaned CSV file: {csv_output_path}", color="green")
+
         file_base = os.path.splitext(file_name)[0]
         output_filename = f"{file_base}_processed.pkl"
         output_path = os.path.join(download_path, output_filename)
@@ -55,7 +59,11 @@ def _to_flat_dataset_config(dataset_config: dict) -> dict:
     cfg["rename_files"] = [_flat_output_name(cfg["dataset_name"])]
     return cfg
 
-def download_datasets(datasets_selection: Union[str, list] = 'default', task: str = 'all') -> bool:
+def download_datasets(
+    datasets_selection: Union[str, list] = 'default',
+    task: str = 'all',
+    force_download: bool = False,
+) -> bool:
     """
     Run download and default processing of selected datasets using Python only.
 
@@ -65,6 +73,7 @@ def download_datasets(datasets_selection: Union[str, list] = 'default', task: st
         - also accepts specific dataset names as strings, e.g. 'hs_cards'
         task (str): Task type, either 'clf' for classification or 'reg' for regression.
         - options: 'clf', 'reg', 'all'(default)
+        force_download (bool): Force redownload even when files already exist.
 
     Returns:
         bool: True if successful, False otherwise.
@@ -86,7 +95,7 @@ def download_datasets(datasets_selection: Union[str, list] = 'default', task: st
             download_result = download_raw_data(
                 dataset_config=dataset_config,
                 download_path=download_path,
-                force_download=False,
+                force_download=force_download,
                 remove_unlisted=False,
             )
             if not download_result:
@@ -130,9 +139,19 @@ if __name__ == "__main__":
         help="Task type: 'clf' for classification, 'reg' for regression, or 'all' (default)"
     )
 
+    parser.add_argument(
+        "--force-download",
+        action="store_true",
+        help="Force redownload even if dataset files already exist."
+    )
+
     args = parser.parse_args()
 
-    success = download_datasets(datasets_selection=args.selection, task=args.task)
+    success = download_datasets(
+        datasets_selection=args.selection,
+        task=args.task,
+        force_download=args.force_download,
+    )
     if success:
         print("✅ All selected datasets processed successfully.")
     else:
