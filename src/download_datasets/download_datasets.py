@@ -1,12 +1,7 @@
-from nbclient import NotebookClient
-from nbformat import read, write
 import os, sys
 import argparse
 from typing import Union
-import nbformat.v4 as v4
-from dotenv import load_dotenv
-
-
+from copy import deepcopy
 
 
 current_dir = os.path.dirname(os.path.realpath(__file__))
@@ -15,57 +10,54 @@ project_root = os.path.abspath(os.path.join(current_dir, '..', '..'))
 if project_root not in sys.path:
     sys.path.insert(0, project_root)
 
-from configs.dataset_configs import get_dataset_list, get_a_dataset_dict
+from src.config import get_dataset_names, get_dataset_config
+from src.dataloader_functions.download_data import download_raw_data
+from src.dataloader_functions.notebook_common import (
+    get_download_path,
+    load_dataset_frames,
+    run_basic_cleaning,
+)
 from src.dataloader_functions.utils.log_msgs import info_msg, warn_msg, error_msg
 
-def build_ntbk_path(dataset_name: str) -> str:
-    """
-    Build the path to the Jupyter notebook for a given dataset.
-    
-    Args:
-        dataset_name (str): Name of the dataset.
-    
-    Returns:
-        str: Path to the Jupyter notebook.
-    """
-    datasets_dir = os.path.join(project_root, 'datasets_notebooks')
-    dataset_config = get_a_dataset_dict(dataset_name)
-    
-    if not dataset_config:
-        raise ValueError(f"Dataset '{dataset_name}' not found in configurations.")
-    
-    ntbk_name = dataset_config['ntbk']
 
-    # Recursively walk through the datasets_dir to find the notebook
-    for root, _, files in os.walk(datasets_dir):
-        for file in files:
-            if file == ntbk_name:
-                return os.path.join(root, file)
-    
-    raise FileNotFoundError(f"Notebook '{ntbk_name}' not found in '{datasets_dir}'.")
+def _save_processed_frames(dataset_config: dict, download_path: str, dataset_files_cleaned: list) -> None:
+    """Persist generically cleaned outputs as Pickle files next to raw files."""
+    rename_files = dataset_config.get("rename_files") or dataset_config.get("files") or []
 
-def run_notebook(notebook_path, output_path=None):
-    """
-    Runs a Jupyter notebook and saves the output if specified.
-    """
-    # Change to notebook's directory
-    notebook_dir = os.path.dirname(notebook_path)
-    os.chdir(notebook_dir)
+    if len(rename_files) != len(dataset_files_cleaned):
+        warn_msg(
+            f"Expected {len(rename_files)} output files but got {len(dataset_files_cleaned)} dataframes. "
+            "Skipping processed save."
+        )
+        return
 
-    # Load the notebook
-    with open(notebook_path) as f:
-        nb = read(f, as_version=4)
+    for file_name, df_file in zip(rename_files, dataset_files_cleaned):
+        file_base = os.path.splitext(file_name)[0]
+        output_filename = f"{file_base}_processed.pkl"
+        output_path = os.path.join(download_path, output_filename)
+        df_file.to_pickle(output_path)
+        info_msg(f"Saved processed file: {output_path}", color="green")
 
-    client = NotebookClient(nb, timeout=600, kernel_name='python3')
-    client.execute()
 
-    if output_path:
-        with open(output_path, 'w') as f:
-            write(nb, f)
+def _flat_output_name(dataset_name: str) -> str:
+    return f"{dataset_name}.csv"
+
+
+def _to_flat_dataset_config(dataset_config: dict) -> dict:
+    """Map any dataset config to a flat single-file output naming scheme."""
+    cfg = deepcopy(dataset_config)
+    source_files = cfg.get("files") or []
+    if len(source_files) != 1:
+        raise ValueError(
+            f"Dataset '{cfg.get('dataset_name')}' has {len(source_files)} source files. "
+            "Flat path mode requires exactly 1 source file."
+        )
+    cfg["rename_files"] = [_flat_output_name(cfg["dataset_name"])]
+    return cfg
 
 def download_datasets(datasets_selection: Union[str, list] = 'default', task: str = 'all') -> bool:
     """
-    Run downlaod and default processing of selected datasets via jupiter notebooks.
+    Run download and default processing of selected datasets using Python only.
 
     Input:
         datasets_selection (list or str): List of dataset names or selection criteria.
@@ -81,30 +73,43 @@ def download_datasets(datasets_selection: Union[str, list] = 'default', task: st
         download_datasets(['default', 'okcupid'], task='clf')
     """
 
-    dataset_name_list = get_dataset_list(datasets_selection, task=task)
+    dataset_name_list = get_dataset_names(datasets_selection, task=task)
 
     print(f"Downloading datasets: {dataset_name_list}")
 
     for dataset_name in dataset_name_list:
-        ntbk_path = build_ntbk_path(dataset_name)
-
-        # Check if the notebook exists
-        if not os.path.exists(ntbk_path):
-            print(f"Notebook for dataset '{dataset_name}' not found at '{ntbk_path}'.")
-            continue
-
-        # Run the notebook
         try:
-            info_msg(f"Running notebook for dataset '{dataset_name}' at '{ntbk_path}'...")
-            run_notebook(ntbk_path)
-            info_msg(f"Successfully ran notebook for dataset '{dataset_name}'.", color='green')
+            dataset_config = _to_flat_dataset_config(get_dataset_config(dataset_name))
+            download_path, _ = get_download_path(dataset_config=dataset_config, start_dir=project_root)
+
+            info_msg(f"Downloading dataset '{dataset_name}' to '{download_path}'...")
+            download_result = download_raw_data(
+                dataset_config=dataset_config,
+                download_path=download_path,
+                force_download=False,
+                remove_unlisted=False,
+            )
+            if not download_result:
+                error_msg(f"Download failed for dataset '{dataset_name}'.")
+                return False
+
+            dataset_files_df = load_dataset_frames(dataset_config=dataset_config, download_path=download_path)
+            dataset_files_cleaned = run_basic_cleaning(
+                dataset_files_df=dataset_files_df,
+                target_column=dataset_config["target"],
+                missing_ratio_threshold=0.5,
+            )
+            _save_processed_frames(dataset_config, download_path, dataset_files_cleaned)
+
+            info_msg(f"Successfully processed dataset '{dataset_name}'.", color='green')
         except Exception as e:
-            error_msg(f"Error running notebook for dataset '{dataset_name}': {e}")
+            error_msg(f"Error processing dataset '{dataset_name}': {e}")
             return False
+
     return True
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Download and preprocess selected datasets via Jupyter notebooks.")
+    parser = argparse.ArgumentParser(description="Download and preprocess selected datasets via Python scripts.")
 
     parser.add_argument(
         "--selection",
@@ -129,6 +134,6 @@ if __name__ == "__main__":
 
     success = download_datasets(datasets_selection=args.selection, task=args.task)
     if success:
-        print("✅ All notebooks executed successfully.")
+        print("✅ All selected datasets processed successfully.")
     else:
-        print("❌ Some notebooks failed to execute.")
+        print("❌ Some datasets failed to process.")

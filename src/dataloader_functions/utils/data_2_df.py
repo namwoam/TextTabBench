@@ -89,17 +89,44 @@ def read_yaml(file_path):
 ## handle csv data files
 #####
 def _read_csv_as_df(file_path):
-    encoding = detect_encoding(file_path)
-    try:
-        delimiter = sniff_delimeter(file_path, encoding)
-        if delimiter is None:
-            delimiter = ','
-        data_df = pd.read_csv(file_path, delimiter=delimiter, encoding=encoding)
-    except Exception as e:
-        error_msg(f"Error reading the csv file: {e}")
-        return None
-    
-    return data_df
+    detected_encoding = detect_encoding(file_path)
+
+    # Try a small set of practical fallbacks for Kaggle datasets.
+    fallback_encodings = [
+        detected_encoding,
+        "utf-8",
+        "utf-8-sig",
+        "cp1252",
+        "latin-1",
+    ]
+
+    # Keep order but remove duplicates / None values.
+    tried_encodings = []
+    for enc in fallback_encodings:
+        if enc and enc not in tried_encodings:
+            tried_encodings.append(enc)
+
+    last_error = None
+    for encoding in tried_encodings:
+        try:
+            delimiter = sniff_delimeter(file_path, encoding)
+            if delimiter is None:
+                delimiter = ','
+            data_df = pd.read_csv(
+                file_path,
+                delimiter=delimiter,
+                encoding=encoding,
+                on_bad_lines='skip',
+                engine='python',
+            )
+            return data_df
+        except Exception as e:
+            last_error = e
+
+    error_msg(
+        f"Error reading the csv file with encodings {tried_encodings}: {last_error}"
+    )
+    return None
 
 def sniff_delimeter(file_path: str, encoding: str):
     """
@@ -139,6 +166,7 @@ def detect_encoding(file_path: str):
         if encoding is None:
             warn_msg(f"Could not detect encoding for {file_path}. Using 'utf-8' as default.")
             return 'utf-8'
+        return encoding
 #####
 ## handle arff files
 #####

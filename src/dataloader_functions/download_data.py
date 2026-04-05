@@ -23,7 +23,7 @@ load_dotenv()
 current_env = os.environ.copy()
 
 current_dir = os.path.dirname(os.path.realpath(__file__))
-RAW_DIR = os.path.join(current_dir, "..", "..", "datasets_files", "raw")
+RAW_DIR = os.path.join(current_dir, "..", "..", "dataset")
 
 from dataloader_functions.utils.log_msgs import *
 from dataloader_functions.utils.data_2_df import run_command, _unzip_if_zipped
@@ -73,6 +73,10 @@ def _check_download_parameters(dataset_config):
 def _create_local_path_raw(local_path, task, dataset_name=None):
     """
     Craft the download/load path if not manually set.
+
+    Target structure is flat by task:
+    - dataset/classification
+    - dataset/regression
     """
     if local_path is None:
 
@@ -90,29 +94,54 @@ def _create_local_path_raw(local_path, task, dataset_name=None):
             error_msg(f"Task '{task}' is not supported.")
             return None
 
-        if dataset_name is not None:
-            # if the dataset name is provided, create a folder for it
-            local_path = os.path.join(local_path, dataset_name)
+        # dataset_name is intentionally not used in the default path because
+        # file names are now unique and folders are task-only.
     return local_path
 
 
-def _check_if_downloaded(download_path):
+def _check_if_downloaded(download_path, dataset_config=None):
     """
     Check if the dataset is already downloaded.
-    If the path exists and the folder is not empty, return True.
+
+    If dataset_config is provided, require that all expected files for this
+    dataset are present. Otherwise, fall back to a non-empty directory check.
     """
-    if (
-        os.path.exists(download_path)
-        and os.path.isdir(download_path)
-        and len(os.listdir(download_path)) > 0
-    ):
-        info_msg(f"Dataset already downloaded in {color_text(download_path)}.")
-        return True
-    else:
+    if not (os.path.exists(download_path) and os.path.isdir(download_path)):
         info_msg(
             f"Dataset not downloaded yet. Downloading to {color_text(download_path)}."
         )
         return False
+
+    if dataset_config is None:
+        if len(os.listdir(download_path)) > 0:
+            info_msg(f"Dataset already downloaded in {color_text(download_path)}.")
+            return True
+        info_msg(
+            f"Dataset not downloaded yet. Downloading to {color_text(download_path)}."
+        )
+        return False
+
+    expected_files = dataset_config.get("rename_files") or dataset_config.get("files") or []
+    if len(expected_files) == 0:
+        warn_msg(
+            f"Dataset {dataset_config.get('dataset_name', 'unknown')} has no expected files configured. "
+            "Using non-empty directory check."
+        )
+        return len(os.listdir(download_path)) > 0
+
+    missing = [f for f in expected_files if not os.path.exists(os.path.join(download_path, f))]
+    if len(missing) == 0:
+        info_msg(
+            f"Dataset '{dataset_config.get('dataset_name', 'unknown')}' already downloaded in "
+            f"{color_text(download_path)}."
+        )
+        return True
+
+    info_msg(
+        f"Dataset '{dataset_config.get('dataset_name', 'unknown')}' is missing files {missing}. "
+        f"Downloading to {color_text(download_path)}."
+    )
+    return False
 
 
 def _rename_files(path, dataset_config):
@@ -362,7 +391,7 @@ def download_raw_data(
     }
 
     # check if the dataset is already downloaded
-    if not force_download and _check_if_downloaded(download_path):
+    if not force_download and _check_if_downloaded(download_path, dataset_config=dataset_config):
         return download_path
     elif force_download:
         _clean_folder(download_path)

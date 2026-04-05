@@ -96,12 +96,21 @@ pip install -r requirements.txt
 Open any dataset notebook to go throught the download and necessary preprocessing. You can also view the data at different stages of processing.
 At last, there is also space for some further analysis of the final data, ready to be ussed by any table-w-text solution pipeline.
 
+Notebook workflow is now centralized through `src/dataloader_functions/notebook_common.py`.
+This keeps dataset notebooks focused on dataset-specific cleaning while shared logic (download path resolution, raw file loading, generic cleaning, and type summary helpers) lives in one maintainable Python module.
+
 ### 4. Download the Datasets
 Run
 ```bash
 python src/download_datasets/download_datasets.py --task <reg/clf> --selection <default/extra/other/_specific_name_ (can list multiple)>
 ```
-to download either a single dataset or a whole subset of them. It will save both the raw and processed version of the data to the `datasets_files` folder.
+to download either a single dataset or a whole subset of them.
+
+Downloaded files are now stored in a flat structure:
+- `dataset/classification/<dataset_name>.csv`
+- `dataset/regression/<dataset_name>.csv`
+
+Processed files are saved next to raw files with the suffix `_processed.pkl`.
 
 ### Issues:
 When a single dataset fails to download, enter its notebook and toggle `force_download` to `False` to enfore a fresh download (otherwise it may get stuck on corrupted files) and run the download cell again.
