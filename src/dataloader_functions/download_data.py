@@ -21,7 +21,6 @@ load_dotenv()
 # Make a copy of the current environment
 # This is crucial so that fundamental variables (like PATH) are inherited
 current_env = os.environ.copy()
-
 current_dir = os.path.dirname(os.path.realpath(__file__))
 RAW_DIR = os.path.join(current_dir, "..", "..", "dataset")
 
