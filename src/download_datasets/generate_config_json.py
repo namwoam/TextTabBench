@@ -18,6 +18,26 @@ from src.config import DATASET_CONFIGS
 from src.dataloader_functions.notebook_common import classify_columns
 
 
+# Upstream notebooks mostly use explicit_nunique_threshold=50,
+# while a few datasets (notably calif_houses) are run with ratio-based threshold.
+UPSTREAM_TYPE_DETECTION_RULES: dict[str, dict[str, float | int | None]] = {
+    "calif_houses": {"unique_ratio_threshold": 0.05, "explicit_nunique_threshold": None},
+}
+
+
+def _get_classification_kwargs(dataset_name: str, default_explicit_nunique_threshold: int) -> dict[str, float | int | None]:
+    rule = UPSTREAM_TYPE_DETECTION_RULES.get(dataset_name)
+    if rule is not None:
+        return {
+            "unique_ratio_threshold": rule.get("unique_ratio_threshold"),
+            "explicit_nunique_threshold": rule.get("explicit_nunique_threshold"),
+        }
+    return {
+        "unique_ratio_threshold": None,
+        "explicit_nunique_threshold": default_explicit_nunique_threshold,
+    }
+
+
 def _task_to_folder(task: str) -> str:
     if task == "clf":
         return "classification"
@@ -56,10 +76,11 @@ def _build_dataset_entry(
     feature_columns = [col for col in df.columns if col != target_column]
     feature_df = df[feature_columns].copy()
 
-    numerical_columns, categorical_columns, text_columns = classify_columns(
-        feature_df,
-        explicit_nunique_threshold=explicit_nunique_threshold,
+    classify_kwargs = _get_classification_kwargs(
+        dataset_name=dataset_name,
+        default_explicit_nunique_threshold=explicit_nunique_threshold,
     )
+    numerical_columns, categorical_columns, text_columns = classify_columns(feature_df, **classify_kwargs)
 
     categorical_set = set(categorical_columns)
     numerical_set = set(numerical_columns)

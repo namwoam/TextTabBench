@@ -223,39 +223,39 @@
         "Zip"
       ],
       "categorical_columns": [
-        "Bathrooms",
-        "Full bathrooms",
-        "Garage spaces",
-        "Elementary School Score",
-        "Middle School Score",
-        "High School Score"
-      ],
-      "numerical_columns": [
-        "Year built",
-        "Lot",
-        "Total spaces",
-        "Elementary School Distance",
-        "Middle School Distance",
-        "High School Distance",
-        "Tax assessed value",
-        "Annual tax amount",
-        "Last Sold Price",
-        "Zip"
-      ],
-      "text_columns": [
-        "Summary",
         "Type",
+        "Year built",
         "Heating",
         "Cooling",
-        "Parking",
         "Bedrooms",
+        "Bathrooms",
+        "Full bathrooms",
+        "Total spaces",
+        "Garage spaces",
+        "Elementary School Score",
+        "Elementary School Distance",
+        "Middle School Score",
+        "Middle School Distance",
+        "High School Score",
+        "High School Distance",
         "Flooring",
         "Heating features",
         "Cooling features",
-        "Appliances included",
         "Laundry features",
-        "Parking features",
-        "City"
+        "City",
+        "Zip"
+      ],
+      "numerical_columns": [
+        "Lot",
+        "Tax assessed value",
+        "Annual tax amount",
+        "Last Sold Price"
+      ],
+      "text_columns": [
+        "Summary",
+        "Parking",
+        "Appliances included",
+        "Parking features"
       ],
       "n_rows": 44913,
       "n_columns": 30,
