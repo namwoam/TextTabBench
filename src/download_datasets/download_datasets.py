@@ -16,6 +16,7 @@ from src.dataloader_functions.notebook_common import (
     get_download_path,
     load_dataset_frames,
     run_basic_cleaning,
+    run_upstream_dataset_cleaning,
 )
 from src.dataloader_functions.utils.log_msgs import info_msg, warn_msg, error_msg
 
@@ -107,6 +108,11 @@ def download_datasets(
                 dataset_files_df=dataset_files_df,
                 target_column=dataset_config["target"],
                 missing_ratio_threshold=0.5,
+            )
+            dataset_files_cleaned = run_upstream_dataset_cleaning(
+                dataset_name=dataset_name,
+                dataset_files_df=dataset_files_cleaned,
+                target_column=dataset_config.get("target"),
             )
             _save_processed_frames(dataset_config, download_path, dataset_files_cleaned)
 

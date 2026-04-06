@@ -1,7 +1,7 @@
 {
   "group": "classification",
-  "generated_on": "2026-04-05",
-  "schema_version": 1,
+  "generated_on": "2026-04-06",
+  "schema_version": 2,
   "datasets": {
     "customer_complaints": {
       "file_name": "customer_complaints.csv",
@@ -17,32 +17,26 @@
         "State",
         "ZIP code",
         "Consumer consent provided?",
-        "Submitted via",
-        "Date sent to company",
-        "Timely response?",
-        "Consumer disputed?",
-        "Complaint ID"
+        "Submitted via"
+      ],
+      "categorical_columns": [
+        "Product",
+        "Consumer consent provided?",
+        "Submitted via"
+      ],
+      "numerical_columns": [
+        "Date received",
+        "ZIP code"
       ],
       "text_columns": [
-        "Date received",
-        "Product",
         "Sub-product",
         "Issue",
         "Sub-issue",
         "Company",
-        "State",
-        "ZIP code",
-        "Consumer consent provided?",
-        "Submitted via",
-        "Date sent to company",
-        "Timely response?",
-        "Consumer disputed?"
+        "State"
       ],
-      "numeric_columns": [
-        "Complaint ID"
-      ],
-      "n_rows": 1282348,
-      "n_columns": 15,
+      "n_rows": 1244048,
+      "n_columns": 11,
       "has_processed_pickle": true,
       "is_auxiliary_file": false
     },
@@ -51,25 +45,25 @@
       "task_type": "clf",
       "target_column": "player_class",
       "feature_columns": [
-        "id",
         "type",
         "name",
         "set",
         "text",
         "cost"
       ],
-      "text_columns": [
-        "id",
+      "categorical_columns": [
         "type",
-        "name",
-        "set",
-        "text"
+        "set"
       ],
-      "numeric_columns": [
+      "numerical_columns": [
         "cost"
       ],
-      "n_rows": 2816,
-      "n_columns": 7,
+      "text_columns": [
+        "name",
+        "text"
+      ],
+      "n_rows": 2810,
+      "n_columns": 6,
       "has_processed_pickle": true,
       "is_auxiliary_file": false
     },
@@ -78,7 +72,6 @@
       "task_type": "clf",
       "target_column": "fraudulent",
       "feature_columns": [
-        "job_id",
         "title",
         "location",
         "company_profile",
@@ -94,6 +87,17 @@
         "industry",
         "function"
       ],
+      "categorical_columns": [
+        "employment_type",
+        "required_experience",
+        "required_education",
+        "function"
+      ],
+      "numerical_columns": [
+        "telecommuting",
+        "has_company_logo",
+        "has_questions"
+      ],
       "text_columns": [
         "title",
         "location",
@@ -101,20 +105,10 @@
         "description",
         "requirements",
         "benefits",
-        "employment_type",
-        "required_experience",
-        "required_education",
-        "industry",
-        "function"
-      ],
-      "numeric_columns": [
-        "job_id",
-        "telecommuting",
-        "has_company_logo",
-        "has_questions"
+        "industry"
       ],
       "n_rows": 17880,
-      "n_columns": 16,
+      "n_columns": 15,
       "has_processed_pickle": true,
       "is_auxiliary_file": false
     },
@@ -123,7 +117,6 @@
       "task_type": "clf",
       "target_column": "status",
       "feature_columns": [
-        "id",
         "name",
         "currency",
         "main_category",
@@ -139,35 +132,34 @@
         "name_length",
         "start_month",
         "end_month",
-        "start_Q",
-        "end_Q",
-        "usd_pledged"
-      ],
-      "text_columns": [
-        "name",
-        "currency",
-        "main_category",
-        "sub_category",
-        "launched_at",
-        "deadline",
-        "city",
-        "state",
-        "country",
         "start_Q",
         "end_Q"
       ],
-      "numeric_columns": [
-        "id",
+      "categorical_columns": [
+        "currency",
+        "main_category",
+        "country"
+      ],
+      "numerical_columns": [
+        "launched_at",
+        "deadline",
         "duration",
         "goal_usd",
         "blurb_length",
         "name_length",
         "start_month",
         "end_month",
-        "usd_pledged"
+        "start_Q",
+        "end_Q"
+      ],
+      "text_columns": [
+        "name",
+        "sub_category",
+        "city",
+        "state"
       ],
       "n_rows": 170730,
-      "n_columns": 20,
+      "n_columns": 18,
       "has_processed_pickle": true,
       "is_auxiliary_file": false
     },
@@ -176,7 +168,6 @@
       "task_type": "clf",
       "target_column": "Task Assigned",
       "feature_columns": [
-        "summary_nr",
         "Event Date",
         "Abstract Text",
         "Event Description",
@@ -185,35 +176,21 @@
         "Construction End Use",
         "build_stor",
         "Building Stories",
-        "proj_cost",
         "Project Cost",
-        "proj_type",
         "Project Type",
         "Degree of Injury",
-        "nature_of_inj",
         "Nature of Injury",
-        "part_of_body",
         "Part of Body",
-        "event_type",
         "Event type",
-        "evn_factor",
         "Environmental Factor",
-        "hum_factor",
         "Human Factor",
-        "task_assigned",
         "hazsub",
         "fat_cause"
       ],
-      "text_columns": [
-        "Event Date",
-        "Abstract Text",
-        "Event Description",
-        "Event Keywords",
-        "con_end",
+      "categorical_columns": [
         "Construction End Use",
-        "proj_cost",
+        "Building Stories",
         "Project Cost",
-        "proj_type",
         "Project Type",
         "Degree of Injury",
         "Nature of Injury",
@@ -222,21 +199,20 @@
         "Environmental Factor",
         "Human Factor"
       ],
-      "numeric_columns": [
-        "summary_nr",
+      "numerical_columns": [
+        "Event Date",
+        "con_end",
         "build_stor",
-        "Building Stories",
-        "nature_of_inj",
-        "part_of_body",
-        "event_type",
-        "evn_factor",
-        "hum_factor",
-        "task_assigned",
         "hazsub",
         "fat_cause"
       ],
+      "text_columns": [
+        "Abstract Text",
+        "Event Description",
+        "Event Keywords"
+      ],
       "n_rows": 4847,
-      "n_columns": 28,
+      "n_columns": 19,
       "has_processed_pickle": true,
       "is_auxiliary_file": false
     },
@@ -245,7 +221,6 @@
       "task_type": "clf",
       "target_column": "track_genre",
       "feature_columns": [
-        "track_id",
         "artists",
         "album_name",
         "track_name",
@@ -265,16 +240,11 @@
         "tempo",
         "time_signature"
       ],
-      "text_columns": [
-        "track_id",
-        "artists",
-        "album_name",
-        "track_name",
-        "explicit"
-      ],
-      "numeric_columns": [
+      "categorical_columns": [],
+      "numerical_columns": [
         "popularity",
         "duration_ms",
+        "explicit",
         "danceability",
         "energy",
         "key",
@@ -288,8 +258,13 @@
         "tempo",
         "time_signature"
       ],
-      "n_rows": 114000,
-      "n_columns": 20,
+      "text_columns": [
+        "artists",
+        "album_name",
+        "track_name"
+      ],
+      "n_rows": 10000,
+      "n_columns": 19,
       "has_processed_pickle": true,
       "is_auxiliary_file": false
     }

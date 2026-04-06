@@ -3,3 +3,6 @@ tasks:
   download:
     cmds:
     - poetry run python src/download_datasets/download_datasets.py --selection default
+  generate-config:
+    cmds:
+    - poetry run python src/download_datasets/generate_config_json.py --task all
