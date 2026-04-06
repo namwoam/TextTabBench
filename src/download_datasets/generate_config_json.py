@@ -15,7 +15,7 @@ if project_root not in sys.path:
     sys.path.insert(0, project_root)
 
 from src.config import DATASET_CONFIGS
-from src.dataloader_functions.notebook_common import classify_columns, clean_numeric_like_columns
+from src.dataloader_functions.notebook_common import classify_columns
 
 
 def _task_to_folder(task: str) -> str:
@@ -42,6 +42,7 @@ def _build_dataset_entry(
     csv_path: Path,
     task: str,
     target_lookup: dict[str, str | None],
+    explicit_nunique_threshold: int,
 ) -> tuple[str, dict]:
     dataset_name = csv_path.stem
     target_column = target_lookup.get(dataset_name)
@@ -55,9 +56,10 @@ def _build_dataset_entry(
     feature_columns = [col for col in df.columns if col != target_column]
     feature_df = df[feature_columns].copy()
 
-    numerical_columns, categorical_columns, text_columns = classify_columns(feature_df)
-    # Apply numeric artefact cleaning for columns classified as numerical.
-    feature_df = clean_numeric_like_columns(feature_df, numerical_columns)
+    numerical_columns, categorical_columns, text_columns = classify_columns(
+        feature_df,
+        explicit_nunique_threshold=explicit_nunique_threshold,
+    )
 
     categorical_set = set(categorical_columns)
     numerical_set = set(numerical_columns)
@@ -87,7 +89,7 @@ def _build_dataset_entry(
     return dataset_name, entry
 
 
-def generate_config_json(task: str, dataset_root: Path) -> Path:
+def generate_config_json(task: str, dataset_root: Path, explicit_nunique_threshold: int = 50) -> Path:
     folder = _task_to_folder(task)
     dataset_dir = dataset_root / folder
     if not dataset_dir.exists():
@@ -97,7 +99,12 @@ def generate_config_json(task: str, dataset_root: Path) -> Path:
 
     datasets: dict[str, dict] = {}
     for csv_path in sorted(dataset_dir.glob("*.csv")):
-        dataset_name, entry = _build_dataset_entry(csv_path=csv_path, task=task, target_lookup=target_lookup)
+        dataset_name, entry = _build_dataset_entry(
+            csv_path=csv_path,
+            task=task,
+            target_lookup=target_lookup,
+            explicit_nunique_threshold=explicit_nunique_threshold,
+        )
         datasets[dataset_name] = entry
 
     config = {
@@ -126,12 +133,22 @@ def main() -> None:
         default=Path("dataset"),
         help="Path to dataset root folder (default: dataset).",
     )
+    parser.add_argument(
+        "--explicit-nunique-threshold",
+        type=int,
+        default=50,
+        help="Columns with unique values <= threshold are treated as categorical (default: 50).",
+    )
     args = parser.parse_args()
 
     tasks = ["clf", "reg"] if args.task == "all" else [args.task]
 
     for task in tasks:
-        output_path = generate_config_json(task=task, dataset_root=args.dataset_root)
+        output_path = generate_config_json(
+            task=task,
+            dataset_root=args.dataset_root,
+            explicit_nunique_threshold=args.explicit_nunique_threshold,
+        )
         print(f"Generated {output_path}")
 
 

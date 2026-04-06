@@ -53,11 +53,10 @@
       ],
       "categorical_columns": [
         "type",
-        "set"
-      ],
-      "numerical_columns": [
+        "set",
         "cost"
       ],
+      "numerical_columns": [],
       "text_columns": [
         "name",
         "text"
@@ -88,16 +87,15 @@
         "function"
       ],
       "categorical_columns": [
+        "telecommuting",
+        "has_company_logo",
+        "has_questions",
         "employment_type",
         "required_experience",
         "required_education",
         "function"
       ],
-      "numerical_columns": [
-        "telecommuting",
-        "has_company_logo",
-        "has_questions"
-      ],
+      "numerical_columns": [],
       "text_columns": [
         "title",
         "location",
@@ -138,19 +136,19 @@
       "categorical_columns": [
         "currency",
         "main_category",
-        "country"
-      ],
-      "numerical_columns": [
-        "launched_at",
-        "deadline",
-        "duration",
-        "goal_usd",
+        "country",
         "blurb_length",
         "name_length",
         "start_month",
         "end_month",
         "start_Q",
         "end_Q"
+      ],
+      "numerical_columns": [
+        "launched_at",
+        "deadline",
+        "duration",
+        "goal_usd"
       ],
       "text_columns": [
         "name",
@@ -188,7 +186,9 @@
         "fat_cause"
       ],
       "categorical_columns": [
+        "con_end",
         "Construction End Use",
+        "build_stor",
         "Building Stories",
         "Project Cost",
         "Project Type",
@@ -197,14 +197,12 @@
         "Part of Body",
         "Event type",
         "Environmental Factor",
-        "Human Factor"
+        "Human Factor",
+        "fat_cause"
       ],
       "numerical_columns": [
         "Event Date",
-        "con_end",
-        "build_stor",
-        "hazsub",
-        "fat_cause"
+        "hazsub"
       ],
       "text_columns": [
         "Abstract Text",
@@ -240,23 +238,24 @@
         "tempo",
         "time_signature"
       ],
-      "categorical_columns": [],
+      "categorical_columns": [
+        "explicit",
+        "key",
+        "mode",
+        "time_signature"
+      ],
       "numerical_columns": [
         "popularity",
         "duration_ms",
-        "explicit",
         "danceability",
         "energy",
-        "key",
         "loudness",
-        "mode",
         "speechiness",
         "acousticness",
         "instrumentalness",
         "liveness",
         "valence",
-        "tempo",
-        "time_signature"
+        "tempo"
       ],
       "text_columns": [
         "artists",

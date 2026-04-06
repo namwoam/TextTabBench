@@ -3,7 +3,6 @@ from __future__ import annotations
 import os
 import sys
 from pathlib import Path
-import re
 
 import pandas as pd
 import numpy as np
@@ -318,69 +317,12 @@ def run_upstream_dataset_cleaning(
 
 
 def is_mostly_numeric(series: pd.Series, length_threshold: float = 0.5, unique_threshold: float = 0.8) -> bool:
-    """Check whether a string/object series behaves like numeric data.
-
-    A column is considered numeric-like when either:
-    1) Most characters are already numeric after removing only a small formatting shell.
-    2) The non-numeric shell is repetitive across rows (e.g., "ABV 12%", "ABV 15%").
-    """
-    s = series.dropna().astype(str)
-    if s.empty:
-        return False
-
-    stripped = s.str.replace(r"[^\d\.\-]", "", regex=True)
-    original_len = s.str.len().replace(0, 1)
-    length_ratio = float((stripped.str.len() / original_len).mean())
-
-    numeric_cast = pd.to_numeric(stripped.replace("", pd.NA), errors="coerce")
-    numeric_parse_ratio = float(numeric_cast.notna().mean())
-
-    # Keep alphabetic/punctuation shell and collapse whitespace to compare wrappers.
-    non_numeric_shell = s.str.replace(r"[\d\.\-]", "", regex=True)
-    non_numeric_shell = non_numeric_shell.str.replace(r"\s+", " ", regex=True).str.strip().str.lower()
-    repetitive_shell_ratio = float(non_numeric_shell.value_counts(normalize=True, dropna=False).iloc[0])
-
-    mostly_numeric_chars = length_ratio >= length_threshold and numeric_parse_ratio >= 0.7
-    repetitive_wrapper_numeric = repetitive_shell_ratio >= 0.8 and numeric_parse_ratio >= 0.7
-
-    return bool(mostly_numeric_chars or repetitive_wrapper_numeric)
-
-
-def clean_numeric_like_value(value):
-    """Convert numeric-like values (e.g., 'ABV 12%', '15s') to float when possible."""
-    if pd.isna(value):
-        return value
-
-    value_str = str(value)
-    value_cleaned = re.sub(r"[^0-9\.\-]", "", value_str)
-
-    if "-" in value_cleaned:
-        value_cleaned = "-" + value_cleaned.replace("-", "")
-
-    if value_cleaned.count(".") > 1:
-        parts = value_cleaned.split(".")
-        value_cleaned = "".join(parts[:-1]) + "." + parts[-1]
-
-    if value_cleaned in {"", "-", ".", "-."}:
-        return pd.NA
-
-    try:
-        return float(value_cleaned)
-    except ValueError:
-        return pd.NA
-
-
-def clean_numeric_like_columns(df: pd.DataFrame, numeric_like_columns: list[str]) -> pd.DataFrame:
-    """Clean numeric artefacts from columns identified as numerical by heuristics."""
-    out = df.copy()
-    for col in numeric_like_columns:
-        if col not in out.columns:
-            continue
-        if pd.api.types.is_numeric_dtype(out[col]):
-            continue
-        out[col] = out[col].map(clean_numeric_like_value)
-        out[col] = pd.to_numeric(out[col], errors="coerce")
-    return out
+    """Check if column is mostly numeric after stripping non-numeric chars."""
+    stripped = series.astype(str).str.replace(r"[^\d\.\-]", "", regex=True)
+    original_len = series.astype(str).str.len().replace(0, 1)
+    length_ratio = (stripped.str.len() / original_len).mean()
+    unique_ratio = stripped.nunique(dropna=False) / max(series.nunique(dropna=False), 1)
+    return length_ratio > length_threshold and unique_ratio > unique_threshold
 
 
 def classify_columns(
@@ -388,17 +330,19 @@ def classify_columns(
     unique_ratio_threshold: float | None = None,
     explicit_nunique_threshold: int | None = None,
 ) -> tuple[list[str], list[str], list[str]]:
-    """Classify dataframe columns into numerical, categorical, and textual."""
+    """Classify dataframe columns into numerical, categorical, textual.
+
+    Binary categorical (2 unique values) is considered categorical.
+    """
     n_rows = len(df)
     if explicit_nunique_threshold is not None:
         nunique_threshold = explicit_nunique_threshold
     elif unique_ratio_threshold is not None:
         nunique_threshold = int(unique_ratio_threshold * n_rows)
     else:
-        # Default heuristic: 5% for smaller datasets, capped at 50 for larger ones.
-        nunique_threshold = min(50, int(0.05 * n_rows))
+        nunique_threshold = int(0.05 * n_rows)
 
-    nunique_threshold = max(2, nunique_threshold)
+    nunique_threshold = max(10, nunique_threshold)
     print(f"Threshold for categorical vs textual: {nunique_threshold}")
 
     numerical_cols: list[str] = []
@@ -410,14 +354,18 @@ def classify_columns(
         nunique = series.nunique(dropna=False)
 
         if pd.api.types.is_numeric_dtype(series):
-            numerical_cols.append(col)
+            if nunique <= nunique_threshold:
+                categorical_cols.append(col)
+            else:
+                numerical_cols.append(col)
         elif pd.api.types.is_string_dtype(series) or pd.api.types.is_object_dtype(series):
             if is_mostly_numeric(series):
                 numerical_cols.append(col)
-            elif nunique <= nunique_threshold:
-                categorical_cols.append(col)
             else:
-                textual_cols.append(col)
+                if nunique <= nunique_threshold:
+                    categorical_cols.append(col)
+                else:
+                    textual_cols.append(col)
         else:
             print(f"Unhandled column type: '{col}' (dtype={series.dtype})")
 
